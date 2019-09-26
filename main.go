@@ -26,7 +26,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -79,19 +78,24 @@ func CheckError(err error) {
 	}
 }
 
-func read(filename string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func read(filename string, f os.FileInfo, err error) error {
 
-	buf, err := ioutil.ReadFile(filename)
-	if err != nil && err != io.EOF {
-		return
+	if f.IsDir() {
+		return nil
 	}
 
-	if _, _, err := translate(buf, filename); err != nil {
-		fmt.Println("failed to retrieve stats:", err)
-		return
-	}
+	if filepath.Ext(filename) == ".cinfo" {
+		buf, err := ioutil.ReadFile(filename)
+		if err != nil && err != io.EOF {
+			return err
+		}
 
+		if _, _, err := translate(buf, filename); err != nil {
+			fmt.Println("failed to retrieve stats:", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func main() {
@@ -104,44 +108,44 @@ func main() {
 	// 	CheckError(err)
 	// }
 
-	//err := filepath.Walk(*path, read)
-	//if err != nil && err != io.EOF {
-	//	CheckError(err)
-	//}
+	err := filepath.Walk(*path, read)
+	if err != nil && err != io.EOF {
+		CheckError(err)
+	}
 
 	// if _, _, err := translate(buf, *path); err != nil {
 	// 	fmt.Println("failed to retrieve stats:", err)
 	// }
 
-	d, err := os.Open(*path)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	defer d.Close()
-	fi, err := d.Readdir(-1)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	// d, err := os.Open(*path)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
+	// }
+	// defer d.Close()
+	// fi, err := d.Readdir(-1)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(1)
+	// }
 
-	files := make(chan string, 8)
-	var wg sync.WaitGroup
+	// files := make(chan string, 8)
+	// var wg sync.WaitGroup
 
-	for _, fi := range fi {
-		if fi.Mode().IsRegular() && filepath.Ext(fi.Name()) == ".cinfo" {
-			fmt.Println(fi.Name(), fi.Size(), "bytes")
+	// for _, fi := range fi {
+	// 	if fi.Mode().IsRegular() && filepath.Ext(fi.Name()) == ".cinfo" {
+	// 		fmt.Println(fi.Name(), fi.Size(), "bytes")
 
-			files <- fi.Name()
-			//if err = read(fi.Name()); err != nil {
-			//	fmt.Println("Function read failed:", err)
-			//}
-			wg.Add(1)
-			go read(<-files, &wg)
-		}
-	}
+	// 		files <- fi.Name()
+	// 		//if err = read(fi.Name()); err != nil {
+	// 		//	fmt.Println("Function read failed:", err)
+	// 		//}
+	// 		wg.Add(1)
+	// 		go read(<-files, &wg)
+	// 	}
+	// }
 
-	wg.Wait()
+	// wg.Wait()
 }
 
 func translate(b []byte, filename string) (Accesses, []MMon, error) {
