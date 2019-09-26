@@ -1,0 +1,10 @@
+cache-sensor
+*.exe
+*.exe.zip
+*_osx
+*_osx.zip
+*.zip
+.vscode
+ubuntu-bionic-18.04-cloudimg-console.log
+.vagrant
+test.cinfo
